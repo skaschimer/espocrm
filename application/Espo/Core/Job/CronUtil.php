@@ -29,12 +29,56 @@
 
 namespace Espo\Core\Job;
 
-use Espo\Core\Job\QueueProcessor\Params;
+use Espo\Core\Utils\File\Manager as FileManager;
+use RuntimeException;
 
 /**
- * @since 10.1.0
+ * @internal
  */
-interface QueueProcessor
+class CronUtil
 {
-    public function process(Params $params): void;
+    protected string $lastRunTimeFile = 'data/cache/application/cronLastRunTime.php';
+
+    public function __construct(
+        private FileManager $fileManager,
+        private ConfigDataProvider $configDataProvider,
+    ) {}
+
+    public function checkLastRunTime(): bool
+    {
+        $currentTime = time();
+        $lastRunTime = $this->getLastRunTime();
+
+        $cronMinInterval = $this->configDataProvider->getCronMinInterval();
+
+        if ($currentTime > ($lastRunTime + $cronMinInterval)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function getLastRunTime(): int
+    {
+        if ($this->fileManager->isFile($this->lastRunTimeFile)) {
+            try {
+                $data = $this->fileManager->getPhpContents($this->lastRunTimeFile);
+            } catch (RuntimeException) {
+                $data = null;
+            }
+
+            if (is_array($data) && isset($data['time'])) {
+                return (int) $data['time'];
+            }
+        }
+
+        return time() - $this->configDataProvider->getCronMinInterval() - 1;
+    }
+
+    public function updateLastRunTime(): void
+    {
+        $data = ['time' => time()];
+
+        $this->fileManager->putPhpContents($this->lastRunTimeFile, $data, false, true);
+    }
 }

@@ -27,14 +27,57 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Job;
+namespace Espo\Core\Job\QueueProcessor\QueueProcessors;
 
+use Espo\Core\Job\Job\Status;
+use Espo\Core\Job\JobRunner;
+use Espo\Core\Job\QueueProcessor;
 use Espo\Core\Job\QueueProcessor\Params;
+use Espo\Core\Job\QueueProcessor\Picker;
+use Espo\Core\Job\QueueUtil;
+use Espo\Core\ORM\EntityManager;
+use Espo\Core\Utils\System;
+use Espo\Entities\Job;
 
-/**
- * @since 10.1.0
- */
-interface QueueProcessor
+class SequentialQueueProcessor implements QueueProcessor
 {
-    public function process(Params $params): void;
+    public function __construct(
+        private QueueUtil $queueUtil,
+        private JobRunner $jobRunner,
+        private EntityManager $entityManager,
+        private Picker $picker,
+    ) {}
+
+    public function process(Params $params): void
+    {
+        foreach ($this->picker->pick($params) as $job) {
+            $this->processJob($job);
+        }
+    }
+
+    private function processJob(Job $job): void
+    {
+        if ($this->toSkip($job)) {
+            return;
+        }
+
+        $this->prepareJob($job);
+
+        $this->jobRunner->run($job);
+    }
+
+    private function toSkip(Job $job): bool
+    {
+        return $this->queueUtil->isScheduledJobRunning($job);
+    }
+
+    private function prepareJob(Job $job): void
+    {
+        $job
+            ->setStartedAtNow()
+            ->setStatus(Status::RUNNING)
+            ->setPid(System::getPid());
+
+        $this->entityManager->saveEntity($job);
+    }
 }

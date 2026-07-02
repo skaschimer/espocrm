@@ -27,14 +27,48 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Job;
+namespace Espo\Core\Job\QueueProcessor\QueueProcessors;
 
+use Espo\Core\Job\AsyncPoolFactory;
+use Espo\Core\Job\ConfigDataProvider;
+use Espo\Core\Job\QueueProcessor;
+use Espo\Core\Utils\Log;
 use Espo\Core\Job\QueueProcessor\Params;
 
 /**
- * @since 10.1.0
+ * @internal
  */
-interface QueueProcessor
+class DefaultQueueProcessor implements QueueProcessor
 {
-    public function process(Params $params): void;
+    public function __construct(
+        private ProcessPoolQueueProcessor $processPoolQueueProcessor,
+        private SequentialQueueProcessor $sequentialQueueProcessor,
+        private AsyncPoolFactory $asyncPoolFactory,
+        private Log $log,
+        private ConfigDataProvider $configDataProvider,
+    ) {}
+
+    public function process(Params $params): void
+    {
+        if ($this->inParallel()) {
+            $this->processPoolQueueProcessor->process($params);
+        } else {
+            $this->sequentialQueueProcessor->process($params);
+        }
+    }
+
+    private function inParallel(): bool
+    {
+        if (!$this->configDataProvider->runInParallel()) {
+            return false;
+        }
+
+        if (!$this->asyncPoolFactory->isSupported()) {
+            $this->log->warning("Enabled `jobRunInParallel` parameter requires pcntl and posix extensions.");
+
+            return false;
+        }
+
+        return true;
+    }
 }

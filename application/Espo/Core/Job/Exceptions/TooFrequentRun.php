@@ -27,14 +27,9 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Job;
+namespace Espo\Core\Job\Exceptions;
 
-use Espo\Core\Job\QueueProcessor\Params;
+use Exception;
 
-/**
- * @since 10.1.0
- */
-interface QueueProcessor
-{
-    public function process(Params $params): void;
-}
+class TooFrequentRun extends Exception
+{}
