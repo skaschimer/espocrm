@@ -27,49 +27,42 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\ApplicationRunners;
+namespace Espo\Classes\ConsoleCommands;
 
-use Espo\Core\Application\Exceptions\RunnerException;
-use Espo\Core\Application\Runner;
+use Espo\Core\Console\Command;
+use Espo\Core\Console\Command\Params;
+use Espo\Core\Console\IO;
 use Espo\Core\Job\Exceptions\TooFrequentRun;
 use Espo\Core\Job\JobManager;
 use Espo\Core\Job\PrepareProcessor;
 use Espo\Core\Utils\Config\SystemConfig;
-use Espo\Core\Utils\Log;
+use RuntimeException;
 
 /**
- * Runs Cron.
+ * @noinspection PhpUnused
  */
-class Cron implements Runner
+class CronRun implements Command
 {
-    use Cli;
-    use SetupSystemUser;
-
     public function __construct(
         private PrepareProcessor $prepareProcessor,
         private JobManager $jobManager,
         private SystemConfig $config,
-        private Log $log,
     ) {}
 
-    public function run(): void
+    public function run(Params $params, IO $io): void
     {
         if (!$this->config->isCronEnabled()) {
-            $this->log->warning("Cron is skipped as 'cronDisabled' is set to true in the config.");
-
-            return;
+            throw new RuntimeException("Cron cannot be run as 'cronDisabled' is set to true in the config.");
         }
 
-        if ($this->config->isMaintenanceMode()) {
-            $this->log->warning("Cron run is skipped in maintenance mode.");
-
-            return;
+        if (!$params->hasFlag('force') && $this->config->isMaintenanceMode()) {
+            throw new RuntimeException("Cron cannot be run in maintenance mode. You can use --force flag.");
         }
 
         try {
             $this->prepareProcessor->process();
         } catch (TooFrequentRun $e) {
-            throw new RunnerException('Too frequent run.', previous: $e);
+            throw new RuntimeException('Too frequent run.', previous: $e);
         }
 
         $this->jobManager->processMainQueue();
