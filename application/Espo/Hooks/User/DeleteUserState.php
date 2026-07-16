@@ -27,62 +27,34 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Hooks\EmailFilter;
+namespace Espo\Hooks\User;
 
 use Espo\Core\Hook\Hook\AfterRemove;
-use Espo\Core\Hook\Hook\AfterSave;
-use Espo\Core\Utils\DataCache;
-use Espo\Core\Utils\User\UserStateProvider;
-use Espo\Entities\EmailFilter;
 use Espo\Entities\User;
+use Espo\Entities\UserState;
 use Espo\ORM\Entity;
+use Espo\ORM\EntityManager;
+use Espo\ORM\Query\DeleteBuilder;
 use Espo\ORM\Repository\Option\RemoveOptions;
-use Espo\ORM\Repository\Option\SaveOptions;
 
 /**
- * @implements AfterSave<EmailFilter>
- * @implements AfterRemove<EmailFilter>
+ * @implements AfterRemove<User>
  */
-class CacheClearing implements AfterSave, AfterRemove
+class DeleteUserState implements AfterRemove
 {
-    private const string CACHE_KEY = 'emailFilters';
-
     public function __construct(
-        private DataCache $dataCache,
-        private UserStateProvider $userStateProvider,
+        private EntityManager $entityManager,
     ) {}
 
-    /**
-     * @param EmailFilter $entity
-     */
-    public function afterSave(Entity $entity, SaveOptions $options): void
-    {
-        $this->processEntity($entity);
-    }
-
-    /**
-     * @param EmailFilter $entity
-     */
     public function afterRemove(Entity $entity, RemoveOptions $options): void
     {
-        $this->processEntity($entity);
-    }
+        $query = DeleteBuilder::create()
+            ->from(UserState::ENTITY_TYPE)
+            ->where([
+                UserState::ATTR_USER_ID => $entity->getId()
+            ])
+            ->build();
 
-    private function processEntity(EmailFilter $entity): void
-    {
-        if ($entity->getParentType() !== User::ENTITY_TYPE || !$entity->getParentId()) {
-            return;
-        }
-
-        $cacheKey = $this->composeCacheKey($entity->getParentId());
-
-        $this->dataCache->clear($cacheKey);
-
-        $this->userStateProvider->bumpEmailFiltersVersionNumber($entity->getParentId());
-    }
-
-    private function composeCacheKey(string $userId): string
-    {
-        return self::CACHE_KEY . '/' . $userId;
+        $this->entityManager->getQueryExecutor()->execute($query);
     }
 }

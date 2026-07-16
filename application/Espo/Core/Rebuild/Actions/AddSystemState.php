@@ -27,62 +27,27 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Hooks\EmailFilter;
+namespace Espo\Core\Rebuild\Actions;
 
-use Espo\Core\Hook\Hook\AfterRemove;
-use Espo\Core\Hook\Hook\AfterSave;
-use Espo\Core\Utils\DataCache;
-use Espo\Core\Utils\User\UserStateProvider;
-use Espo\Entities\EmailFilter;
-use Espo\Entities\User;
-use Espo\ORM\Entity;
-use Espo\ORM\Repository\Option\RemoveOptions;
-use Espo\ORM\Repository\Option\SaveOptions;
+use Espo\Core\Rebuild\RebuildAction;
+use Espo\Entities\SystemState;
+use Espo\ORM\EntityManager;
+use Espo\ORM\Name\Attribute;
 
-/**
- * @implements AfterSave<EmailFilter>
- * @implements AfterRemove<EmailFilter>
- */
-class CacheClearing implements AfterSave, AfterRemove
+class AddSystemState implements RebuildAction
 {
-    private const string CACHE_KEY = 'emailFilters';
-
     public function __construct(
-        private DataCache $dataCache,
-        private UserStateProvider $userStateProvider,
+        private EntityManager $entityManager,
     ) {}
 
-    /**
-     * @param EmailFilter $entity
-     */
-    public function afterSave(Entity $entity, SaveOptions $options): void
+    public function process(): void
     {
-        $this->processEntity($entity);
-    }
+        $entity = $this->entityManager->getEntityById(SystemState::ENTITY_TYPE, SystemState::ID_VALUE);
 
-    /**
-     * @param EmailFilter $entity
-     */
-    public function afterRemove(Entity $entity, RemoveOptions $options): void
-    {
-        $this->processEntity($entity);
-    }
-
-    private function processEntity(EmailFilter $entity): void
-    {
-        if ($entity->getParentType() !== User::ENTITY_TYPE || !$entity->getParentId()) {
+        if ($entity) {
             return;
         }
 
-        $cacheKey = $this->composeCacheKey($entity->getParentId());
-
-        $this->dataCache->clear($cacheKey);
-
-        $this->userStateProvider->bumpEmailFiltersVersionNumber($entity->getParentId());
-    }
-
-    private function composeCacheKey(string $userId): string
-    {
-        return self::CACHE_KEY . '/' . $userId;
+        $this->entityManager->createEntity(SystemState::ENTITY_TYPE, [Attribute::ID => SystemState::ID_VALUE]);
     }
 }
