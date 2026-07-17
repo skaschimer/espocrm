@@ -27,29 +27,58 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Utils\Event;
+namespace Espo\Core\Utils\Event\Redis;
 
-use Espo\Core\Container\Loader;
-use Espo\Core\InjectableFactory;
 use Espo\Core\Utils\Config;
-use Espo\Core\Utils\Event\Redis\RedisEventTransport;
+use Predis\Client;
+use Predis\CommunicationException;
 
-/**
- * @noinspection PhpUnused
- */
-class EventTransportLoader implements Loader
+class ClientProvider
 {
+    private ?Client $client = null;
+
     public function __construct(
-        private InjectableFactory $injectableFactory,
         private Config $config,
     ) {}
 
-    public function load(): EventTransport
+    public function get(): Client
     {
-        if ($this->config->get('eventTransport') === 'Redis') {
-            return $this->injectableFactory->create(RedisEventTransport::class);
+        if (!$this->client) {
+            $scheme = $this->config->get('redis.scheme') ?? null;
+            $port = $this->config->get('redis.port') ?? null;
+            $host = $this->config->get('redis.host') ?? null;
+
+            $params = [];
+
+            if ($scheme !== null) {
+                $params['scheme'] = $scheme;
+            }
+
+            if ($host !== null) {
+                $params['host'] = $host;
+            }
+
+            if ($port !== null) {
+                $params['port'] = $port;
+            }
+
+            $this->client = new Client($params);
         }
 
-        return $this->injectableFactory->create(BypassEventTransport::class);
+        return $this->client;
+    }
+
+    /**
+     * @noinspection PhpRedundantCatchClauseInspection
+     */
+    public function reconnect(): void
+    {
+        try {
+            $this->client?->disconnect();
+        } catch (CommunicationException) {}
+
+        $client = $this->get();
+
+        $client->connect();
     }
 }
