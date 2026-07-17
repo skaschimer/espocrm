@@ -27,27 +27,20 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Tools\Pipeline;
+namespace Espo\Tools\Pipeline\Events;
 
-use Espo\Core\Utils\DataCache;
-use Espo\Core\Utils\Event\EventDispatcher;
-use Espo\Core\WebSocket\Submission;
-use Espo\Tools\Pipeline\Events\UpdateGlobal;
+use Espo\Core\Utils\Event\CrossInstanceEvent;
+use stdClass;
 
-class CacheClearer
+class UpdateGlobal implements CrossInstanceEvent
 {
-    private const string CACHE_KEY = 'pipelines';
-
-    public function __construct(
-        private DataCache $dataCache,
-        private Submission $submission,
-        private EventDispatcher $eventDispatcher,
-    ) {}
-
-    public function clear(): void
+    public static function fromRaw(stdClass $payload): CrossInstanceEvent
     {
-        $this->dataCache->clear(self::CACHE_KEY);
-        $this->eventDispatcher->dispatch(new UpdateGlobal());
-        $this->submission->submit('appParamsUpdate');
+        return new self();
+    }
+
+    public function toRaw(): stdClass
+    {
+        return (object) [];
     }
 }
