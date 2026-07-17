@@ -27,20 +27,47 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace tests\unit\Espo\Core\Utils\Event;
+namespace Espo\Core\Acl\Events;
 
 use Espo\Core\Utils\Event\CrossInstanceEvent;
 use stdClass;
+use UnexpectedValueException;
 
-class TestCiEvent2 implements CrossInstanceEvent
+/**
+ * @since 10.1.0
+ */
+class InvalidatePortalUserCache implements CrossInstanceEvent
 {
+    public function __construct(
+        public string $userId,
+        public string $portalId,
+    ) {}
+
     public static function fromRaw(stdClass $payload): self
     {
-        return new self();
+        $userId = $payload->userId ?? null;
+
+        if (!is_string($userId)) {
+            throw new UnexpectedValueException("No user ID.");
+        }
+
+        $portalId = $payload->portalId ?? null;
+
+        if (!is_string($portalId)) {
+            throw new UnexpectedValueException("No portal ID.");
+        }
+
+        return new self(
+            userId: $userId,
+            portalId: $portalId,
+        );
     }
 
     public function toRaw(): stdClass
     {
-        return (object) [];
+        return (object) [
+            'userId' => $this->userId,
+            'portalId' => $this->portalId,
+        ];
     }
 }

@@ -27,20 +27,23 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace tests\unit\Espo\Core\Utils\Event;
+namespace Espo\Tools\Currency\Events;
 
 use Espo\Core\Utils\Event\CrossInstanceEvent;
 use stdClass;
 
-class TestCiEvent2 implements CrossInstanceEvent
+/**
+ * @since 10.1.0
+ */
+readonly class CurrencyRateUpdate implements CrossInstanceEvent
 {
-    public static function fromRaw(stdClass $payload): self
-    {
-        return new self();
-    }
-
     public function toRaw(): stdClass
     {
         return (object) [];
+    }
+
+    public static function fromRaw(stdClass $payload): self
+    {
+        return new self();
     }
 }

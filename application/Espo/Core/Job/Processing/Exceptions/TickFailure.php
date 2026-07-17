@@ -27,20 +27,9 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace tests\unit\Espo\Core\Utils\Event;
+namespace Espo\Core\Job\Processing\Exceptions;
 
-use Espo\Core\Utils\Event\CrossInstanceEvent;
-use stdClass;
+use Exception;
 
-class TestCiEvent2 implements CrossInstanceEvent
-{
-    public static function fromRaw(stdClass $payload): self
-    {
-        return new self();
-    }
-
-    public function toRaw(): stdClass
-    {
-        return (object) [];
-    }
-}
+class TickFailure extends Exception
+{}

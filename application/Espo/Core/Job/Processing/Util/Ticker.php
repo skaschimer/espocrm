@@ -27,20 +27,27 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace tests\unit\Espo\Core\Utils\Event;
+namespace Espo\Core\Job\Processing\Util;
 
-use Espo\Core\Utils\Event\CrossInstanceEvent;
-use stdClass;
+use Espo\Core\Job\Processing\Exceptions\TickFailure;
+use Espo\Core\Utils\Event\EventDispatcherTransport;
+use Espo\Core\Utils\Event\Exceptions\TransportNotConnected;
 
-class TestCiEvent2 implements CrossInstanceEvent
+class Ticker
 {
-    public static function fromRaw(stdClass $payload): self
-    {
-        return new self();
-    }
+    public function __construct(
+        private EventDispatcherTransport $transport
+    ) {}
 
-    public function toRaw(): stdClass
+    /**
+     * @throws TickFailure
+     */
+    public function tick(): void
     {
-        return (object) [];
+        try {
+            $this->transport->tick();
+        } catch (TransportNotConnected $e) {
+            throw new TickFailure(previous: $e);
+        }
     }
 }
