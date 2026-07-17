@@ -27,28 +27,29 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Job\Processing\Util;
+namespace Espo\Core\Loaders;
 
-use Espo\Core\Utils\Config;
-use Espo\Core\Utils\Config\StateConfig;
-use Espo\Core\Utils\Event\EventDispatcherTransport;
+use Espo\Core\Binding\BindingContainerBuilder;
+use Espo\Core\Container\Loader;
+use Espo\Core\InjectableFactory;
+use Espo\Core\Utils\Event\EventDispatcher as EventDispatcherService;
+use Espo\Core\Utils\Event\OriginProvider;
 
-class ExitPolicy
+class EventDispatcher implements Loader
 {
-    private int $cacheTimestamp;
-
     public function __construct(
-        private StateConfig $stateConfig,
-        private Config\StateConfigDirect $stateConfigDirect,
-        private EventDispatcherTransport $eventDispatcherTransport,
-    ) {
-        $this->cacheTimestamp = $this->stateConfig->getCacheTimestamp();
-    }
+        private InjectableFactory $injectableFactory,
+    ) {}
 
-    public function toExit(): bool
+    public function load(): EventDispatcherService
     {
-        return
-            $this->cacheTimestamp !== $this->stateConfigDirect->getCacheTimestamp() ||
-            $this->eventDispatcherTransport->shouldReconnect();
+        $originProvider = $this->injectableFactory->create(OriginProvider::class);
+
+        return $this->injectableFactory->createWithBinding(
+            EventDispatcherService::class,
+            BindingContainerBuilder::create()
+                ->bindInstance(OriginProvider::class, $originProvider)
+                ->build()
+        );
     }
 }

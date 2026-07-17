@@ -27,28 +27,53 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Job\Processing\Util;
+namespace tests\unit\Espo\Core\Utils\Event;
 
-use Espo\Core\Utils\Config;
-use Espo\Core\Utils\Config\StateConfig;
-use Espo\Core\Utils\Event\EventDispatcherTransport;
+use Espo\Core\Utils\Event\Context;
+use Espo\Core\Utils\Event\CrossInstanceEventDispatcher;
+use Espo\Core\Utils\Event\OriginProvider;
+use PHPUnit\Framework\TestCase;
 
-class ExitPolicy
+class CrossInstanceEventDispatcherTest extends TestCase
 {
-    private int $cacheTimestamp;
+    public function testDispatching(): void
+    {
+        $originProvider = $this->getOriginProvider();
 
-    public function __construct(
-        private StateConfig $stateConfig,
-        private Config\StateConfigDirect $stateConfigDirect,
-        private EventDispatcherTransport $eventDispatcherTransport,
-    ) {
-        $this->cacheTimestamp = $this->stateConfig->getCacheTimestamp();
+        $transport = new TestTransport();
+
+        $dispatcher = new CrossInstanceEventDispatcher(
+            transport: $transport,
+            originProvider: $originProvider,
+        );
+
+        $value = false;
+
+        $callback1 = function (TestCiEvent1 $event, Context $context) use (&$value) {
+            if (!$context->isLocal && $event->value === 'hello') {
+                $value = true;
+            }
+        };
+
+        $callback2 = function () use (&$value) {
+            $value = false;
+        };
+
+        $dispatcher->subscribe(TestCiEvent1::class, $callback1);
+        $dispatcher->subscribe(TestCiEvent2::class, $callback2);
+
+        $transport->dispatchForTest(TestCiEvent1::class, (object) ['value' => 'hello']);
+
+        $this->assertTrue($value);
     }
 
-    public function toExit(): bool
+    private function getOriginProvider(): OriginProvider
     {
-        return
-            $this->cacheTimestamp !== $this->stateConfigDirect->getCacheTimestamp() ||
-            $this->eventDispatcherTransport->shouldReconnect();
+        $originProvider = $this->createMock(OriginProvider::class);
+
+        $originProvider->method('get')
+            ->willReturn('test-id');
+
+        return $originProvider;
     }
 }

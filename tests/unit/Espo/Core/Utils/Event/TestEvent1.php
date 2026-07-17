@@ -27,28 +27,9 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Job\Processing\Util;
+namespace tests\unit\Espo\Core\Utils\Event;
 
-use Espo\Core\Utils\Config;
-use Espo\Core\Utils\Config\StateConfig;
-use Espo\Core\Utils\Event\EventDispatcherTransport;
+use Espo\Core\Utils\Event\Event;
 
-class ExitPolicy
-{
-    private int $cacheTimestamp;
-
-    public function __construct(
-        private StateConfig $stateConfig,
-        private Config\StateConfigDirect $stateConfigDirect,
-        private EventDispatcherTransport $eventDispatcherTransport,
-    ) {
-        $this->cacheTimestamp = $this->stateConfig->getCacheTimestamp();
-    }
-
-    public function toExit(): bool
-    {
-        return
-            $this->cacheTimestamp !== $this->stateConfigDirect->getCacheTimestamp() ||
-            $this->eventDispatcherTransport->shouldReconnect();
-    }
-}
+class TestEvent1 implements Event
+{}

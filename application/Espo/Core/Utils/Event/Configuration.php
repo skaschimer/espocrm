@@ -27,28 +27,29 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Job\Processing\Util;
+namespace Espo\Core\Utils\Event;
 
-use Espo\Core\Utils\Config;
-use Espo\Core\Utils\Config\StateConfig;
-use Espo\Core\Utils\Event\EventDispatcherTransport;
-
-class ExitPolicy
+/**
+ * @internal
+ */
+class Configuration
 {
-    private int $cacheTimestamp;
-
     public function __construct(
-        private StateConfig $stateConfig,
-        private Config\StateConfigDirect $stateConfigDirect,
-        private EventDispatcherTransport $eventDispatcherTransport,
-    ) {
-        $this->cacheTimestamp = $this->stateConfig->getCacheTimestamp();
+        private bool $subscribeToCrossInstanceEvents = false,
+    ) {}
+
+    public function subscribeToCrossInstanceEvents(): bool
+    {
+        return $this->subscribeToCrossInstanceEvents;
     }
 
-    public function toExit(): bool
+    /**
+     * @internal
+     */
+    public function setSubscribeToCrossInstanceEvents(bool $value): self
     {
-        return
-            $this->cacheTimestamp !== $this->stateConfigDirect->getCacheTimestamp() ||
-            $this->eventDispatcherTransport->shouldReconnect();
+        $this->subscribeToCrossInstanceEvents = $value;
+
+        return $this;
     }
 }

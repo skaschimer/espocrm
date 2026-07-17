@@ -27,28 +27,20 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Job\Processing\Util;
+namespace tests\unit\Espo\Core\Utils\Event;
 
-use Espo\Core\Utils\Config;
-use Espo\Core\Utils\Config\StateConfig;
-use Espo\Core\Utils\Event\EventDispatcherTransport;
+use Espo\Core\Utils\Event\CrossInstanceEvent;
+use stdClass;
 
-class ExitPolicy
+class TestCiEvent2 implements CrossInstanceEvent
 {
-    private int $cacheTimestamp;
-
-    public function __construct(
-        private StateConfig $stateConfig,
-        private Config\StateConfigDirect $stateConfigDirect,
-        private EventDispatcherTransport $eventDispatcherTransport,
-    ) {
-        $this->cacheTimestamp = $this->stateConfig->getCacheTimestamp();
+    public static function fromRaw(stdClass $payload): static
+    {
+        return new self();
     }
 
-    public function toExit(): bool
+    public function toRaw(): stdClass
     {
-        return
-            $this->cacheTimestamp !== $this->stateConfigDirect->getCacheTimestamp() ||
-            $this->eventDispatcherTransport->shouldReconnect();
+        return (object) [];
     }
 }
