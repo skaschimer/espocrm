@@ -27,22 +27,30 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Di;
+namespace Espo\Core\Utils\Cache;
 
+use Espo\Core\Container;
+use Espo\Core\Container\Loader;
 use Espo\Core\Utils\DataCache;
+use RuntimeException;
 
 /**
- * @phpstan-ignore-next-line trait.unused
+ * @noinspection PhpUnused
  */
-trait DataCacheSetter
+class DataCacheServiceLoader implements Loader
 {
-    /**
-     * @var DataCache
-     */
-    protected $dataCache;
+    public function __construct(
+        private Container $container,
+    ) {}
 
-    public function setDataCache(DataCache $dataCache): void
+    public function load(): DataCache
     {
-        $this->dataCache = $dataCache;
+        $service = $this->container->get(DataCacheServiceName::SYSTEM);
+
+        if (!$service instanceof DataCache) {
+            throw new RuntimeException("Unexpected 'dataCache' service instance.");
+        }
+
+        return $service;
     }
 }

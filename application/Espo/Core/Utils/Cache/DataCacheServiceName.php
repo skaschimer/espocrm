@@ -27,22 +27,13 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Di;
-
-use Espo\Core\Utils\DataCache;
+namespace Espo\Core\Utils\Cache;
 
 /**
- * @phpstan-ignore-next-line trait.unused
+ * @since 10.1.0
  */
-trait DataCacheSetter
+class DataCacheServiceName
 {
-    /**
-     * @var DataCache
-     */
-    protected $dataCache;
-
-    public function setDataCache(DataCache $dataCache): void
-    {
-        $this->dataCache = $dataCache;
-    }
+    public const string SYSTEM = 'systemDataCache';
+    public const string APPLICATION = 'dataCache';
 }
